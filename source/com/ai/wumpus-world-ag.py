@@ -1,3 +1,26 @@
+from enum import Enum
+
+
+class Percepts(Enum):
+    BREEZE = 1
+    SMELL = 2
+    OK = 3
+
+
+class Go(Enum):
+    UP = 1
+    DOWN = 2
+    LEFT = 3
+    RIGHT = 4
+
+
+class Shoot(Enum):
+    UP = 1
+    DOWN = 2
+    LEFT = 3
+    RIGHT = 4
+
+
 class Cell:
     def __init__(self, r, c, w_value):
         self.r = r
@@ -18,55 +41,103 @@ class Cell:
         self.is_visited = False
 
 
+def agent_percepts(node):
+    percepts = []
+    if node.is_smell:
+        percepts.append(Percepts.SMELL)
+    if node.is_breeze:
+        percepts.append(Percepts.BREEZE)
+    if not node.is_smell and not node.is_breeze:
+        percepts.append(Percepts.OK)
+    return percepts
+
+
 class WumpusWorld:
     def __init__(self, world, size, arrow):
         self.cells = world
         self.size = size
         self.arrow = arrow
         self.arrow_cost = -10
-        self.move_cost = -1
         self.gold_cost = 150
-        self.agen_last_move = ""
+        self.agen_last_moves = []
+        self.agen_shoots_arrow = []
+        self.agent_travel_path = []
+        self.is_found_gold = False
 
-    def agent_traverse(self, start):
-        start.is_visited = True
-        nodes = []
-        if start.up is not None and not start.up.is_visited:
-            nodes.append(start.up)
-        if start.down is not None and not start.down.is_visited:
-            nodes.append(start.down)
-        if start.right is not None and not start.right.is_visited:
-            nodes.append(start.right)
-        if start.left is not None and not start.left.is_visited:
-            nodes.append(start.left)
+    def agent_traverse(self, start, back_track):
 
-        node = self.calculate_best_node(nodes)
-        print("Go To Cell (", node.r, " ,", node.c, " )")
-        if node.is_pit or node.is_wumps:
-            print("Gave Over!!!!")
+        if self.is_found_gold:
             return
-        if not node.is_gold:
-            self.agent_traverse(node)
+        # To do - do not initialize the brreze and smell calculate on the go based on the percepts
+        print("Visiting ", start.r, " ", start.c)
+
+        start.is_visited = True
+        if not back_track:
+            self.agent_travel_path.append(start)
+
+        if start.is_pit or start.is_wumps:
+            print("Gave Over!!!!")
+            for _ in self.cells:
+                for i in _:
+                    print(i.cost, end=" ")
+                print()
+
+            return
+        elif not start.is_gold:
+            percepts = agent_percepts(start)
+            if Percepts.OK in percepts:
+                if start.up is not None and (not start.up.is_visited or back_track):
+                    self.agen_last_moves.append(Go.UP)
+                    self.agent_traverse(start.up, False)
+                if start.down is not None and (not start.down.is_visited or back_track):
+                    self.agen_last_moves.append(Go.DOWN)
+                    self.agent_traverse(start.down, False)
+                if start.right is not None and (not start.right.is_visited or back_track):
+                    self.agen_last_moves.append(Go.RIGHT)
+                    self.agent_traverse(start.right, False)
+                if start.left is not None and (not start.left.is_visited or back_track):
+                    self.agen_last_moves.append(Go.LEFT)
+                    self.agent_traverse(start.left, False)
+
+            if Percepts.SMELL in percepts:
+                self.agen_shoots_arrow.append(Shoot.UP)
+                self.agen_shoots_arrow.append(Shoot.DOWN)
+                self.agen_shoots_arrow.append(Shoot.RIGHT)
+                self.agen_shoots_arrow.append(Shoot.LEFT)
+                print("Shot Arrows ")
+                if start.up is not None and (not start.up.is_visited or back_track):
+                    if start.up.is_wumps:
+                        print("Wumps Killed")
+                    start.up.is_wumps = False
+                    self.agen_last_moves.append(Go.UP)
+                    self.agent_traverse(start.up, False)
+                elif start.down is not None and (not start.down.is_visited or back_track):
+                    if start.down.is_wumps:
+                        print("Wumps Killed")
+                    start.down.is_wumps = False
+                    self.agen_last_moves.append(Go.DOWN)
+                    self.agent_traverse(start.down, False)
+                elif start.right is not None and (not start.right.is_visited or back_track):
+                    if start.right.is_wumps:
+                        print("Wumps Killed")
+                    start.right.is_wumps = False
+                    self.agen_last_moves.append(Go.RIGHT)
+                    self.agent_traverse(start.right, False)
+                elif start.left is not None and (not start.left.is_visited or back_track):
+                    if start.left.down.is_wumps:
+                        print("Wumps Killed")
+                    start.right.is_wumps = False
+                    self.agen_last_moves.append(Go.LEFT)
+                    self.agent_traverse(start.left, False)
+
+            if Percepts.BREEZE in percepts:
+                print("Back Tracking")
+                poped = self.agent_travel_path.pop(len(self.agent_travel_path) - 1)
+                self.agent_traverse(poped, True)
         else:
             print("found gold!!!")
-            print("move cost ", self.move_cost)
-
-    def calculate_best_node(self, nodes):
-        for node in nodes:
-            if not node.is_breeze and not node.is_smell:
-                self.move_cost = self.move_cost + (-1)
-                node.cost = node.cost + 1
-            elif node.is_breeze and node.is_smell:
-                self.move_cost = self.move_cost + (-1)
-                node.cost = node.cost + 3
-            elif node.is_breeze:
-                self.move_cost = self.move_cost + (-1)
-                node.cost = node.cost + 3
-            elif node.is_smell:
-                self.move_cost = self.move_cost + (-1)
-                node.cost = node.cost + 3
-        nodes.sort(key=lambda nd: nd.cost)
-        return nodes[0]
+            self.is_found_gold = True
+            return
 
 
 if __name__ == '__main__':
@@ -143,5 +214,5 @@ if __name__ == '__main__':
                 if side_cell.is_wumps:
                     current_cell.is_smell = True
     ww = WumpusWorld(arr, pitSize, arrows)
-    print(" Star from Cell ( 0, 0 )")
-    ww.agent_traverse(arr[0][0])
+    ww.agent_traverse(arr[0][0], False)
+    print(ww.agen_last_moves)
