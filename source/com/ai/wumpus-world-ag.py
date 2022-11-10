@@ -98,7 +98,10 @@ class Agent:
 
     def agent_shot(self, start):
         percept = []
+        if self.arrow <= 0:
+            return percept
 
+        self.arrow = self.arrow - 1
         if not start.up.is_visited:
             print("Shooting Arrows up")
             self.arrow_cost = self.arrow_cost + (-10)
@@ -307,4 +310,4 @@ if __name__ == '__main__':
     print("*** Moves Taken by Agent ***")
     for _ in ag.agen_last_moves:
         print(_)
-    print("*** Total cost ", ag.move_cost+ag.arrow_cost+ag.gold_cost)
+    print("*** Total cost ", ag.move_cost + ag.arrow_cost + ag.gold_cost)
