@@ -87,9 +87,9 @@ class Agent:
     def __init__(self, world, arrow):
         self.cell = world
         self.arrow = arrow
-        self.arrow_cost = -10
-        self.move_cost = -1
-        self.gold_cost = 150
+        self.arrow_cost = 0
+        self.move_cost = 0
+        self.gold_cost = 0
         self.agen_last_moves = []
         self.agen_shoots_arrow = []
         self.agent_travel_path = []
